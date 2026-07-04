@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# 개인 트레이딩 데이터 (업로드 제외 - 민감 정보)
+data/
+backup/
+raw_data/
+
+# 디버그 로그
+debug_logs/
+
+# 윈도우 임시파일
+Thumbs.db
+desktop.ini
+*.lnk
