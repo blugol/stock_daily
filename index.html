@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>영웅문 연동 복기 대시보드 V2.0</title>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20260706r">
+    <link rel="stylesheet" href="style.css?v=20260706_04">
     <!-- Google Fonts for Premium Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,7 +100,7 @@
                         <!-- Compact Financial Accordion -->
                         <div class="form-group" style="margin-bottom:0;">
                             <div class="fin-accordion-header" id="fin-accordion-header">
-                                <span class="fin-accordion-title">&#128202; 재무 분석 노트</span>
+                                <span class="fin-accordion-title">재무 분석 노트</span>
                                 <div class="fin-accordion-right">
                                     <span class="fin-item-count" id="fin-item-count"></span>
                                     <span class="fin-accordion-arrow" id="fin-accordion-arrow" style="transform: rotate(180deg)">▾</span>
@@ -140,57 +140,17 @@
                     <div class="card-body">
                         <div class="inputs-row">
                             <div class="form-group flex-1">
-                                <label for="target-price" class="target-label">🎯 목표가 (Target Price)</label>
+                                <label for="target-price" class="target-label">목표가 (Target Price)</label>
                                 <input type="number" id="target-price" placeholder="목표가 입력" min="0">
                             </div>
                             <div class="form-group flex-1">
-                                <label for="stop-price" class="stop-label">⚠️ 손절가 (Stop Loss)</label>
+                                <label for="stop-price" class="stop-label">손절가 (Stop Loss)</label>
                                 <input type="number" id="stop-price" placeholder="손절가 입력" min="0">
                             </div>
                         </div>
                     </div>
-                <div class="card settlement-card">
-                    <div class="card-header">
-                        <h2>매매결산</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="settlement-row" style="display: flex; gap: 12px; align-items: flex-end;">
-                            <div class="form-group" style="flex: 1.2; margin-bottom: 0;">
-                                <label for="sell-price">최종 매도 단가 (₩)</label>
-                                <input type="number" id="sell-price" placeholder="단가 입력" min="0" style="width: 100%; box-sizing: border-box;">
-                            </div>
-                            <div class="form-group" style="flex: 1.5; margin-bottom: 0;">
-                                <label for="sell-date">최종 매도일</label>
-                                <input type="date" id="sell-date" style="width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--color-text-primary); padding: 9px 12px; border-radius: 4px; outline: none; font-family: inherit;">
-                            </div>
-                            <button class="btn btn-settle" id="btn-settle-execute" style="flex: 1; height: 40px; padding: 0;">최종 청산</button>
-                        </div>
+                </div>
 
-                        <!-- Result Display Panel -->
-                        <div class="settlement-results" id="settlement-results-box" style="display: none;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h3 style="margin-bottom: 0;">결산 완료</h3>
-                                <button type="button" id="btn-settle-edit" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--primary); padding: 4px 12px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s;">수정</button>
-                            </div>
-                            <div class="results-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">매수 정보 (일자/평단)</span>
-                                    <input type="text" id="res-buy-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
-                                </div>
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">매도 정보 (일자/단가)</span>
-                                    <input type="text" id="res-sell-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
-                                </div>
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">보유 기간</span>
-                                    <input type="text" id="res-holding-period" readonly style="background: transparent; border: none; color: #FFF; font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
-                                </div>
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">최종 수익률</span>
-                                    <input type="text" id="res-yield-rate" readonly style="background: transparent; border: none; color: var(--green); font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
-                                </div>
-                            </div>
-                        </div>
                 <div class="card calculator-card">
                     <div class="card-header">
                         <h2>분할매수</h2>
@@ -251,6 +211,52 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div class="card settlement-card">
+                    <div class="card-header">
+                        <h2>매매결산</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="settlement-row" style="display: flex; gap: 12px; align-items: flex-end;">
+                            <div class="form-group" style="flex: 1.2; margin-bottom: 0;">
+                                <label for="sell-price">최종 매도 단가 (₩)</label>
+                                <input type="number" id="sell-price" placeholder="단가 입력" min="0" style="width: 100%; box-sizing: border-box;">
+                            </div>
+                            <div class="form-group" style="flex: 1.5; margin-bottom: 0;">
+                                <label for="sell-date">최종 매도일</label>
+                                <input type="date" id="sell-date" style="width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--color-text-primary); padding: 9px 12px; border-radius: 4px; outline: none; font-family: inherit;">
+                            </div>
+                            <button class="btn btn-settle" id="btn-settle-execute" style="flex: 1; height: 40px; padding: 0;">최종 청산</button>
+                        </div>
+
+                        <!-- Result Display Panel -->
+                        <div class="settlement-results" id="settlement-results-box" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h3 style="margin-bottom: 0;">결산 완료</h3>
+                                <button type="button" id="btn-settle-edit" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--primary); padding: 4px 12px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s;">수정</button>
+                            </div>
+                            <div class="results-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">매수 정보 (일자/평단)</span>
+                                    <input type="text" id="res-buy-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
+                                </div>
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">매도 정보 (일자/단가)</span>
+                                    <input type="text" id="res-sell-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
+                                </div>
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">보유 기간</span>
+                                    <input type="text" id="res-holding-period" readonly style="background: transparent; border: none; color: #FFF; font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
+                                </div>
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">최종 수익률</span>
+                                    <input type="text" id="res-yield-rate" readonly style="background: transparent; border: none; color: var(--green); font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
         </main>
@@ -259,6 +265,6 @@
 
     <!-- Script Import -->
     <script src="quotes.js?v=20260706"></script>
-    <script src="app.js?v=20260706s"></script>
+    <script src="app.js?v=20260706_05"></script>
 </body>
 </html>

@@ -7,7 +7,8 @@
     --bg-main: #121212;
     --bg-card: #18181B;
     --bg-input: #27272A;
-    --border-color: #3F3F46;
+    --border-color: #27272A; /* Much fainter/darker for internal inputs and small elements */
+    --border-card: #4A4A52; /* Subdued grey for main sections to prevent distraction */
     --border-glow: rgba(255, 255, 255, 0.15);
     
     --color-text-primary: #ECEFF1;
@@ -83,7 +84,7 @@ body {
 .sidebar {
     width: 230px;
     background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-card);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -222,7 +223,7 @@ body {
     visibility: hidden;
     background: transparent;
     border: none;
-    color: #FF5252;
+    color: var(--color-text-muted);
     font-size: 1.15rem;
     cursor: pointer;
     padding: 0 4px;
@@ -238,7 +239,7 @@ body {
 
 .stock-delete-btn:hover {
     opacity: 1 !important;
-    color: #FF1744 !important;
+    color: var(--color-text-primary) !important;
     transform: scale(1.2);
 }
 
@@ -472,7 +473,7 @@ body {
 /* Cards styling */
 .card {
     background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-card);
     border-radius: 8px;
     margin-bottom: 16px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -798,8 +799,8 @@ input:focus, textarea:focus {
 }
 
 /* Target & Stop Colors */
-.target-label { color: var(--green); }
-.stop-label { color: var(--red); }
+.target-label { color: var(--color-text-muted); }
+.stop-label { color: var(--color-text-muted); }
 
 /* Buttons styling */
 .btn {
@@ -825,14 +826,14 @@ input:focus, textarea:focus {
 }
 
 .btn-settle {
-    background: var(--red);
+    background: #3F3F46;
     color: #FFF;
     min-width: 100px;
 }
 
 .btn-settle:hover {
-    background: #FF1744;
-    box-shadow: 0 0 12px rgba(255, 82, 82, 0.4);
+    background: #5A5A62;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
 }
 
 /* Settlement Panel */
@@ -860,7 +861,7 @@ input:focus, textarea:focus {
 .settlement-results h3 {
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--red);
+    color: var(--color-text-primary);
     text-transform: uppercase;
     margin-bottom: 12px;
 }
@@ -967,8 +968,8 @@ input:focus, textarea:focus {
 .timeline-time {
     font-family: 'Outfit', sans-serif;
     font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--primary);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.4);
     margin-bottom: 6px;
 }
 
@@ -1096,7 +1097,7 @@ input:focus, textarea:focus {
     line-height: 1;
 }
 
-.fi-inline-delete:hover { color: var(--red); }
+.fi-inline-delete:hover { color: var(--color-text-primary); }
 
 .fi-inline-value {
     background: rgba(0,0,0,0.2);
@@ -1171,4 +1172,119 @@ select {
 option {
     background-color: var(--bg-card);
     color: var(--color-text-primary);
+}
+/* ==========================================================================
+   📱 Responsive Design
+   ========================================================================== */
+
+/* Tablet / Medium Desktop (When window shrinks) */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Small Screens / Narrow Window */
+@media (max-width: 850px) {
+    .app-body {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        height: 200px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 16px;
+        padding-right: 0;
+    }
+    .stock-badge {
+        font-size: 1.2rem;
+        min-width: 180px;
+    }
+    .quote-text {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* Extra Small (Mobile) */
+@media (max-width: 500px) {
+    .app-container {
+        padding: 8px;
+    }
+    .settlement-grid {
+        grid-template-columns: 1fr;
+    }
+    .fin-inline-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+/* Extreme Mobile Size (Under 500px) */
+@media (max-width: 500px) {
+    .app-container {
+        padding: 4px;
+    }
+    .stock-badge {
+        min-width: 0;
+        width: 100%;
+        font-size: 1.1rem;
+        padding: 8px;
+    }
+    .header-middle {
+        width: 100%;
+        text-align: center;
+    }
+    .fin-inline-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .martingale-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed rgba(255,255,255,0.1);
+    }
+    .martingale-header {
+        display: none; /* Hide grid headers if they exist, or wrap them */
+    }
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .panel-header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+    .settlement-grid {
+        grid-template-columns: 1fr;
+    }
+    .sidebar {
+        height: 150px;
+    }
+    .quote-text {
+        font-size: 0.85rem !important;
+    }
+    .btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+}
+.quote-text {
+    transition: opacity 0.8s ease-in-out;
+    opacity: 1;
+}
+
+/* Keyword Highlights */
+.kw-pos {
+    color: #4ADE80; /* Tailwind green-400, pastel & visible in dark mode */
+    font-weight: 700;
+}
+.kw-neg {
+    color: #F87171; /* Tailwind red-400, pastel & visible in dark mode */
+    font-weight: 700;
 }

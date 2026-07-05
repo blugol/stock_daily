@@ -219,7 +219,7 @@ function renderMartinTable() {
                 <input type="date" class="tier-date" value="${tier.date || ''}" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #FFF; padding: 4px; border-radius: 4px;">
             </td>
             <td class="delete-col" style="text-align: center;">
-                <button type="button" class="btn-delete-tier" data-tier="${tier.tier}" style="background: transparent; border: none; color: #FF5252; cursor: pointer; font-size: 1.15rem; padding: 2px 6px; line-height: 1; transition: color 0.2s;" title="삭제">&times;</button>
+                <button type="button" class="btn-delete-tier" data-tier="${tier.tier}" style="background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1.15rem; padding: 2px 6px; line-height: 1; transition: color 0.2s;" title="삭제">&times;</button>
             </td>
         `;
         
@@ -332,6 +332,38 @@ function updateUIWithData() {
     renderFinancialsInline();
 }
 
+const positiveKeywords = ["우량", "스마트", "스마트머니", "빈집", "자사", "자사주", "장내매수", "흑자", "흑자전환", "1군", "VIP", "매집", "매집봉", "방어", "지지", "돌파", "양봉", "상한가", "공구리", "골든크로스", "정배열", "수박", "계단", "파란점선", "최하단", "눌림", "수렴", "안착", "밥그릇", "영차", "슈팅", "반등", "하이힐", "우상향", "타점", "수익실현", "익절", "추매", "분할매수", "목표", "경험치", "관망", "인내", "농사매매"];
+const negativeKeywords = ["작전", "부채", "적자", "관리종목", "상폐", "폭탄", "최악", "똥", "불량", "개미털기", "골파기", "설거지", "지하실", "하락", "음봉", "데드크로스", "역배열", "저항", "이탈", "고점", "윗꼬리", "우하향", "손절", "털림", "탈락", "패스", "미매수", "뇌동매매", "추격매수", "몰빵", "물타기", "조바심", "강박"];
+
+function highlightKeywords(text) {
+    let result = text;
+    // Sort by length descending to prevent partial replacements
+    const posSorted = [...positiveKeywords].sort((a,b) => b.length - a.length);
+    const negSorted = [...negativeKeywords].sort((a,b) => b.length - a.length);
+
+    posSorted.forEach(kw => {
+        // We use a regex that safely ignores text already inside HTML tags
+        // However, since the text is plain text when passed here, simple global replace is fine,
+        // EXCEPT we might match something we just injected in the class name if it contained a keyword.
+        // But our classes "kw-pos" and "kw-neg" don't contain Korean characters.
+        const regex = new RegExp(`(${kw})`, 'g');
+        result = result.replace(regex, `%%POS_START%%$1%%POS_END%%`);
+    });
+    
+    negSorted.forEach(kw => {
+        const regex = new RegExp(`(${kw})`, 'g');
+        result = result.replace(regex, `%%NEG_START%%$1%%NEG_END%%`);
+    });
+
+    // Finally, replace placeholders with actual HTML to prevent recursive matching
+    result = result.replace(/%%POS_START%%/g, '<span class="kw-pos">');
+    result = result.replace(/%%POS_END%%/g, '</span>');
+    result = result.replace(/%%NEG_START%%/g, '<span class="kw-neg">');
+    result = result.replace(/%%NEG_END%%/g, '</span>');
+
+    return result;
+}
+
 // Render Timeline Logs List
 function renderTimeline() {
     const timelineContainerEl = document.getElementById("timeline-container");
@@ -343,11 +375,25 @@ function renderTimeline() {
     }
 
     currentData.timeline_logs.forEach(log => {
+        let displayTime = log.time;
+        if (displayTime && !displayTime.includes("(")) {
+            const parts = displayTime.split(" ");
+            if (parts.length >= 2) {
+                const d = new Date(parts[0]);
+                if (!isNaN(d.getTime())) {
+                    const days = ['일', '월', '화', '수', '목', '금', '토'];
+                    displayTime = `${parts[0]} (${days[d.getDay()]}) ${parts.slice(1).join(" ")}`;
+                }
+            }
+        }
         const item = document.createElement("div");
         item.className = "timeline-item";
+        let escapedText = escapeHTML(log.text);
+        let highlightedText = highlightKeywords(escapedText);
+        
         item.innerHTML = `
-            <div class="timeline-time">${log.time}</div>
-            <div class="timeline-content">${escapeHTML(log.text)}</div>
+            <div class="timeline-time">${displayTime}</div>
+            <div class="timeline-content">${highlightedText}</div>
         `;
         timelineContainerEl.appendChild(item);
     });
@@ -1187,28 +1233,64 @@ function renderFinancialsInline() {
             }
             valueHtml = `<input type="text" class="fi-inline-value" style="${color}" value="${escapeHTML(item.value)}" placeholder="값 (예: 152%)" data-index="${index}">`;
         } else if (item.label === "평가의견") {
-            valueHtml = `
-                <select class="fi-inline-value" data-index="${index}" style="appearance: none; padding-right: 20px;">
-                    <option value="" disabled ${!item.value ? 'selected' : ''}>선택...</option>
-                    <option value="없음" ${item.value === '없음' ? 'selected' : ''}>없음 (정상)</option>
-                    <option value="있음" ${item.value === '있음' ? 'selected' : ''}>있음 (자금 우려)</option>
-                </select>
-            `;
-        } else if (item.label === "주주현황") {
             let parts = (item.value || "").split("|");
-            let shType = parts[0] || "";
-            let shVal = parts[1] || "";
+            let baseChoice = parts[0] || "";
+            let evalYear = parts[1] || "";
+            let evalDetail = parts[2] || "";
+
             valueHtml = `
-                <div style="display:flex; gap:4px;">
-                    <select class="fi-inline-sh-type" data-index="${index}" style="width:50%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem;">
+                <div class="eval-container">
+                    <select class="fi-inline-eval-type" data-index="${index}" style="width:100%; appearance: none; padding-right: 20px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem; margin-bottom: ${baseChoice === '있음' ? '4px' : '0'};">
+                        <option value="" disabled ${!baseChoice ? 'selected' : ''}>선택...</option>
+                        <option value="없음" ${baseChoice === '없음' ? 'selected' : ''}>없음 (정상)</option>
+                        <option value="있음" ${baseChoice === '있음' ? 'selected' : ''}>있음 (자금 우려)</option>
+                    </select>
+            `;
+            if (baseChoice === '있음') {
+                let yearOptions = `<option value="" disabled ${!evalYear ? 'selected' : ''}>연도</option>`;
+                for (let y = 2035; y >= 1990; y--) {
+                    yearOptions += `<option value="${y}" ${evalYear==y ? 'selected' : ''}>${y}</option>`;
+                }
+                valueHtml += `
+                    <div class="eval-details-row" style="display:flex; gap:4px;">
+                        <select class="fi-inline-eval-year" data-index="${index}" style="width:35%; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); color:#fff; padding:4px; border-radius:3px; font-size:0.85rem;">
+                            ${yearOptions}
+                        </select>
+                        <input type="text" class="fi-inline-eval-detail" value="${escapeHTML(evalDetail)}" placeholder="상세 사유 (예: CB발행)" data-index="${index}" style="width:65%; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); color:#fff; padding:4px; border-radius:3px; font-size:0.85rem;">
+                    </div>
+                `;
+            }
+            valueHtml += `</div>`;
+        } else if (item.label === "주주현황") {
+            let shItems = (item.value || "").split(",");
+            if (shItems.length === 0 || (shItems.length === 1 && shItems[0] === "")) {
+                shItems = ["|"];
+            }
+            let htmlList = "";
+            shItems.forEach((shItem, shIdx) => {
+                let parts = shItem.split("|");
+                let shType = parts[0] || "";
+                let shVal = parts[1] || "";
+                htmlList += `
+                <div class="sh-row" style="display:flex; gap:4px; margin-bottom: 4px;">
+                    <select class="fi-inline-sh-type" data-index="${index}" data-subindex="${shIdx}" style="width:50%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem;">
                         <option value="" disabled ${!shType ? 'selected' : ''}>선택</option>
                         <option value="대주주" ${shType === '대주주' ? 'selected' : ''}>대주주</option>
                         <option value="자사주" ${shType === '자사주' ? 'selected' : ''}>자사주</option>
+                        <option value="자사신탁" ${shType === '자사신탁' ? 'selected' : ''}>자사신탁</option>
                         <option value="외국인" ${shType === '외국인' ? 'selected' : ''}>외국인</option>
                         <option value="기관" ${shType === '기관' ? 'selected' : ''}>기관</option>
                         <option value="스마트개미" ${shType === '스마트개미' ? 'selected' : ''}>스마트개미</option>
                     </select>
-                    <input type="text" class="fi-inline-sh-val" value="${escapeHTML(shVal)}" placeholder="지분율(%)" data-index="${index}" style="width:50%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem;">
+                    <input type="text" class="fi-inline-sh-val" value="${escapeHTML(shVal)}" placeholder="지분율(%)" data-index="${index}" data-subindex="${shIdx}" style="width:50%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem;">
+                    <button class="remove-sh-btn" data-index="${index}" data-subindex="${shIdx}" style="background:transparent; border:none; color:var(--color-text-muted); font-size:1.1rem; cursor:pointer; padding:0 4px;" title="이 주주 삭제">&times;</button>
+                </div>
+                `;
+            });
+            valueHtml = `
+                <div class="sh-container">
+                    ${htmlList}
+                    <button class="add-sh-btn" data-index="${index}" style="width:100%; background:rgba(255,255,255,0.05); border:1px dashed var(--border-color); color:var(--color-text-muted); padding:2px; border-radius:3px; cursor:pointer; font-size:0.75rem; margin-top:2px; transition:all 0.2s;">+ 주주 추가</button>
                 </div>
             `;
         }
@@ -1260,14 +1342,65 @@ function renderFinancialsInline() {
             
             // 주주현황 복합 인풋 처리
             if (e.target.classList.contains("fi-inline-sh-type") || e.target.classList.contains("fi-inline-sh-val")) {
-                const row = e.target.closest('.fin-inline-item');
-                const typeEl = row.querySelector('.fi-inline-sh-type');
-                const valEl = row.querySelector('.fi-inline-sh-val');
-                if (typeEl && valEl) {
-                    currentData.financials[i].value = (typeEl.value || "") + "|" + (valEl.value || "");
+                const idx = parseInt(e.target.getAttribute('data-index'));
+                const container = e.target.closest('.sh-container');
+                if (container) {
+                    let newItems = [];
+                    container.querySelectorAll('.sh-row').forEach(row => {
+                        let t = row.querySelector('.fi-inline-sh-type').value || "";
+                        let v = row.querySelector('.fi-inline-sh-val').value || "";
+                        newItems.push(t + "|" + v);
+                    });
+                    currentData.financials[idx].value = newItems.join(",");
+                }
+            }
+
+            // 평가의견 복합 인풋 처리
+            if (e.target.classList.contains("fi-inline-eval-type") || e.target.classList.contains("fi-inline-eval-year") || e.target.classList.contains("fi-inline-eval-detail")) {
+                const idx = parseInt(e.target.getAttribute('data-index'));
+                const container = e.target.closest('.eval-container');
+                if (container) {
+                    let typeEl = container.querySelector('.fi-inline-eval-type');
+                    let yearEl = container.querySelector('.fi-inline-eval-year');
+                    let detailEl = container.querySelector('.fi-inline-eval-detail');
+                    
+                    let t = typeEl ? (typeEl.value || "") : "";
+                    let y = yearEl ? (yearEl.value || "") : "";
+                    let d = detailEl ? (detailEl.value || "") : "";
+                    
+                    currentData.financials[idx].value = t + (t === '있음' ? "|" + y + "|" + d : "");
+                    
+                    if (e.target.classList.contains("fi-inline-eval-type")) {
+                        // Re-render UI to show/hide the extra fields when type changes
+                        updateUIWithData(currentData);
+                    }
                 }
             }
             
+            triggerAutoSave();
+        });
+    });
+
+    list.querySelectorAll('.add-sh-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            let currentVal = currentData.financials[idx].value || "";
+            if (currentVal) currentVal += ",|";
+            else currentVal = "|";
+            currentData.financials[idx].value = currentVal;
+            updateUIWithData(currentData);
+            triggerAutoSave();
+        });
+    });
+
+    list.querySelectorAll('.remove-sh-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            const subidx = parseInt(e.target.getAttribute('data-subindex'));
+            let shItems = (currentData.financials[idx].value || "").split(",");
+            shItems.splice(subidx, 1);
+            currentData.financials[idx].value = shItems.join(",");
+            updateUIWithData(currentData);
             triggerAutoSave();
         });
     });
@@ -1329,11 +1462,26 @@ if (settingsBtn && settingsDropdown) {
 function updateMotivationalQuote() {
     const quoteEl = document.getElementById('motivational-quote');
     if (quoteEl && typeof window.getRandomQuote === 'function') {
-        quoteEl.textContent = '"' + window.getRandomQuote() + '"';
+        // Fade out
+        quoteEl.style.opacity = '0';
+        
+        // Wait for fade out to complete (0.8s) before changing text and fading in
+        setTimeout(() => {
+            quoteEl.textContent = '"' + window.getRandomQuote() + '"';
+            quoteEl.style.opacity = '1';
+        }, 800);
     }
 }
 
-// Update quote on load
+// Update quote on load and start 3s interval (3000ms + 800ms transition time)
 document.addEventListener("DOMContentLoaded", () => {
-    updateMotivationalQuote();
+    // Initial display
+    const quoteEl = document.getElementById('motivational-quote');
+    if (quoteEl && typeof window.getRandomQuote === 'function') {
+        quoteEl.textContent = '"' + window.getRandomQuote() + '"';
+        quoteEl.style.opacity = '1';
+    }
+    
+    // Rotate every 7 seconds (7000ms + 800ms fade out wait)
+    setInterval(updateMotivationalQuote, 7800);
 });
