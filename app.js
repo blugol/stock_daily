@@ -1,7 +1,6 @@
 // DOM Elements
 const activeStockNameEl = document.getElementById("active-stock-name");
-const tagInputEl = document.getElementById("tag-input");
-const tagsBadgeListEl = document.getElementById("tags-badge-list");
+
 const basePriceEl = document.getElementById("base-price");
 const baseQtyEl = document.getElementById("base-qty");
 const currentAvgPriceEl = document.getElementById("current-avg-price");
@@ -33,7 +32,7 @@ let isSettlementEditMode = false;
 // Default empty template matching backend DEFAULT_TEMPLATE
 const DEFAULT_DATA = {
     trend_status: "",
-    dynamic_tags: [],
+    financials: [],
     martin_calc: {
         base_qty: 1,
         base_price: 0,
@@ -54,7 +53,8 @@ const DEFAULT_DATA = {
         stamp: "",
         sell_date: ""
     },
-    timeline_logs: []
+    timeline_logs: [],
+    financials: []
 };
 
 // Polling HTS Active Stock Status
@@ -122,6 +122,9 @@ async function loadMemoData(stockName) {
             }
             if (!currentData.timeline_logs) {
                 currentData.timeline_logs = [];
+            }
+            if (!currentData.financials) {
+                currentData.financials = [];
             }
             
             updateUIWithData();
@@ -235,15 +238,13 @@ function resetUI() {
 // Update UI Elements with loaded JSON data
 function updateUIWithData() {
     if (!currentData) return;
+    if (typeof updateMotivationalQuote === 'function') updateMotivationalQuote();
 
-    // 1. Trend Status Radios
-    const radios = document.querySelectorAll('input[name="trend_status"]');
-    radios.forEach(radio => {
-        radio.checked = (radio.value === currentData.trend_status);
-    });
+    // 1. Trend Status Dropdown
+    updateTrendDropdownDisplay(currentData.trend_status);
 
-    // 2. Tags
-    renderTags();
+    // 2. Financial accordion count update
+    renderFinancialsInline();
 
     // 3. Target and Stop Prices
     targetPriceEl.value = currentData.target_price || "";
@@ -326,24 +327,15 @@ function updateUIWithData() {
 
     // 7. Timeline logs
     renderTimeline();
-}
 
-// Render Tags List
-function renderTags() {
-    tagsBadgeListEl.innerHTML = "";
-    currentData.dynamic_tags.forEach((tag, index) => {
-        const badge = document.createElement("div");
-        badge.className = "tag-badge";
-        badge.innerHTML = `
-            <span>#${tag}</span>
-            <span class="btn-remove-tag" data-index="${index}">&times;</span>
-        `;
-        tagsBadgeListEl.appendChild(badge);
-    });
+    // 8. Financials
+    renderFinancialsInline();
 }
 
 // Render Timeline Logs List
 function renderTimeline() {
+    const timelineContainerEl = document.getElementById("timeline-container");
+    if (!timelineContainerEl) return;
     timelineContainerEl.innerHTML = "";
     if (currentData.timeline_logs.length === 0) {
         timelineContainerEl.innerHTML = '<div class="timeline-item" style="text-align: center; color: var(--color-text-muted);">작성된 메모가 없습니다.</div>';
@@ -361,50 +353,69 @@ function renderTimeline() {
     });
 }
 
-// Helper to escape HTML to prevent XSS
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-    );
+// ──────────────────────────────────────────────
+// Trend Status Dropdown Logic
+// ──────────────────────────────────────────────
+
+const TREND_META = {
+    "하락 추세 진행중": { color: "var(--color-down)",     icon: "🔵" },
+    "눌림목 지지중":   { color: "var(--color-pullback)",  icon: "🟣" },
+    "수렴 및 박스권":  { color: "var(--color-range)",     icon: "🟢" },
+    "추세 상단 돌파":  { color: "var(--color-breakout)",  icon: "🔴" },
+};
+
+function updateTrendDropdownDisplay(value) {
+    const textEl = document.getElementById("trend-selected-text");
+    const trigger = document.getElementById("trend-dropdown-trigger");
+    if (!textEl || !trigger) return;
+
+    if (value && TREND_META[value]) {
+        textEl.textContent = TREND_META[value].icon + " " + value;
+        trigger.style.borderColor = TREND_META[value].color;
+        trigger.style.color       = TREND_META[value].color;
+    } else {
+        textEl.textContent = "선택 없음";
+        trigger.style.borderColor = "";
+        trigger.style.color       = "";
+    }
+
+    // Sync hidden radio
+    document.querySelectorAll('input[name="trend_status"]').forEach(r => {
+        r.checked = (r.value === value);
+    });
+
+    // Highlight active item in list
+    document.querySelectorAll(".trend-dropdown-item").forEach(item => {
+        item.classList.toggle("active", item.dataset.value === value);
+    });
 }
 
-// Add Tag Event
-tagInputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const value = tagInputEl.value.trim();
-        if (value && !currentData.dynamic_tags.includes(value)) {
-            currentData.dynamic_tags.push(value);
-            tagInputEl.value = "";
-            renderTags();
-            triggerAutoSave();
-        }
-    }
+// Toggle dropdown open/close
+document.getElementById("trend-dropdown-trigger")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const list = document.getElementById("trend-dropdown-list");
+    list.classList.toggle("open");
 });
 
-// Remove Tag Event (Delegation)
-tagsBadgeListEl.addEventListener("click", (e) => {
-    if (e.target.classList.contains("btn-remove-tag")) {
-        const index = parseInt(e.target.getAttribute("data-index"));
-        currentData.dynamic_tags.splice(index, 1);
-        renderTags();
+// Click item in dropdown
+document.getElementById("trend-dropdown-list")?.addEventListener("click", (e) => {
+    const item = e.target.closest(".trend-dropdown-item");
+    if (!item) return;
+
+    const value = item.dataset.value;
+    if (currentData) {
+        currentData.trend_status = value;
         triggerAutoSave();
     }
+    updateTrendDropdownDisplay(value);
+    document.getElementById("trend-dropdown-list").classList.remove("open");
 });
 
-// Trend Status Change Event
-document.querySelectorAll('input[name="trend_status"]').forEach(radio => {
-    radio.addEventListener("change", (e) => {
-        currentData.trend_status = e.target.value;
-        triggerAutoSave();
-    });
+// Click outside → close dropdown
+document.addEventListener("click", () => {
+    document.getElementById("trend-dropdown-list")?.classList.remove("open");
 });
+
 
 // Target/Stop Loss inputs
 targetPriceEl.addEventListener("input", (e) => {
@@ -1122,3 +1133,207 @@ if (btnAddTier) {
         triggerAutoSave();
     });
 }
+
+// ============================================================
+//  📊 인라인 재무 분석 노트 (Compact Financial Accordion)
+// ============================================================
+
+function escapeHTML(str) {
+    if (str == null) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function renderFinancialsInline() {
+    const list = document.getElementById("fin-inline-list");
+    const countEl = document.getElementById("fin-item-count");
+    if (!list || !countEl) return;
+
+    list.innerHTML = "";
+
+    if (!currentData) return;
+
+    if (!currentData.financials || currentData.financials.length === 0) {
+        // 기본 재무 항목 제공
+        currentData.financials = [
+            { label: "부채비율", value: "", note: "" },
+            { label: "주주현황", value: "", note: "" },
+            { label: "평가의견", value: "", note: "" }
+        ];
+        triggerAutoSave();
+    }
+
+    countEl.textContent = currentData.financials.length;
+
+    currentData.financials.forEach((item, index) => {
+        const row = document.createElement("div");
+        row.className = "fin-inline-item";
+
+        let labelHtml = `<input type="text" list="shareholder-options" class="fi-inline-label" value="${escapeHTML(item.label)}" placeholder="항목명" data-index="${index}">`;
+        let valueHtml = `<input type="text" class="fi-inline-value" value="${escapeHTML(item.value)}" placeholder="값" data-index="${index}">`;
+        let noteHtml = `<input type="text" class="fi-inline-note" value="${escapeHTML(item.note || "")}" placeholder="메모" data-index="${index}">`;
+
+        if (item.label === "부채비율") {
+            let color = "";
+            let numValue = parseFloat(item.value);
+            if (!isNaN(numValue)) {
+                if (numValue >= 150) color = "color: var(--red);";
+                else if (numValue >= 100) color = "color: orange;";
+                else color = "color: var(--green);";
+            }
+            valueHtml = `<input type="text" class="fi-inline-value" style="${color}" value="${escapeHTML(item.value)}" placeholder="값 (예: 152%)" data-index="${index}">`;
+        } else if (item.label === "평가의견") {
+            valueHtml = `
+                <select class="fi-inline-value" data-index="${index}" style="appearance: none; padding-right: 20px;">
+                    <option value="" disabled ${!item.value ? 'selected' : ''}>선택...</option>
+                    <option value="없음" ${item.value === '없음' ? 'selected' : ''}>없음 (정상)</option>
+                    <option value="있음" ${item.value === '있음' ? 'selected' : ''}>있음 (자금 우려)</option>
+                </select>
+            `;
+        } else if (item.label === "주주현황") {
+            let parts = (item.value || "").split("|");
+            let shType = parts[0] || "";
+            let shVal = parts[1] || "";
+            valueHtml = `
+                <div style="display:flex; gap:4px;">
+                    <select class="fi-inline-sh-type" data-index="${index}" style="width:50%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem;">
+                        <option value="" disabled ${!shType ? 'selected' : ''}>선택</option>
+                        <option value="대주주" ${shType === '대주주' ? 'selected' : ''}>대주주</option>
+                        <option value="자사주" ${shType === '자사주' ? 'selected' : ''}>자사주</option>
+                        <option value="외국인" ${shType === '외국인' ? 'selected' : ''}>외국인</option>
+                        <option value="기관" ${shType === '기관' ? 'selected' : ''}>기관</option>
+                        <option value="스마트개미" ${shType === '스마트개미' ? 'selected' : ''}>스마트개미</option>
+                    </select>
+                    <input type="text" class="fi-inline-sh-val" value="${escapeHTML(shVal)}" placeholder="지분율(%)" data-index="${index}" style="width:50%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 3px; font-size: 0.85rem;">
+                </div>
+            `;
+        }
+
+        row.innerHTML = `
+            <div class="fin-inline-header">
+                ${labelHtml}
+                <button class="fi-inline-delete" data-index="${index}" title="삭제">&times;</button>
+            </div>
+            ${valueHtml}
+            ${noteHtml}
+        `;
+        list.appendChild(row);
+    });
+
+    // Add datalist for shareholders if it doesn't exist
+    if (!document.getElementById("shareholder-options")) {
+        const datalist = document.createElement("datalist");
+        datalist.id = "shareholder-options";
+        datalist.innerHTML = `
+            <option value="대주주">
+            <option value="자사주">
+            <option value="외국인">
+            <option value="기관">
+            <option value="스마트개미">
+        `;
+        document.body.appendChild(datalist);
+    }
+
+    // Event Bindings
+    list.querySelectorAll("input, select").forEach(input => {
+        input.addEventListener("input", (e) => {
+            const i = parseInt(e.target.getAttribute("data-index"));
+            if (e.target.classList.contains("fi-inline-label")) currentData.financials[i].label = e.target.value;
+            if (e.target.classList.contains("fi-inline-value")) {
+                currentData.financials[i].value = e.target.value;
+                if (currentData.financials[i].label === "부채비율") {
+                    let numValue = parseFloat(e.target.value);
+                    if (!isNaN(numValue)) {
+                        if (numValue >= 150) e.target.style.color = "var(--red)";
+                        else if (numValue >= 100) e.target.style.color = "orange";
+                        else e.target.style.color = "var(--green)";
+                    } else {
+                        e.target.style.color = "";
+                    }
+                }
+            }
+            if (e.target.classList.contains("fi-inline-note")) currentData.financials[i].note = e.target.value;
+            
+            // 주주현황 복합 인풋 처리
+            if (e.target.classList.contains("fi-inline-sh-type") || e.target.classList.contains("fi-inline-sh-val")) {
+                const row = e.target.closest('.fin-inline-item');
+                const typeEl = row.querySelector('.fi-inline-sh-type');
+                const valEl = row.querySelector('.fi-inline-sh-val');
+                if (typeEl && valEl) {
+                    currentData.financials[i].value = (typeEl.value || "") + "|" + (valEl.value || "");
+                }
+            }
+            
+            triggerAutoSave();
+        });
+    });
+
+    list.querySelectorAll(".fi-inline-delete").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const i = parseInt(e.target.getAttribute("data-index"));
+            if (confirm(`"${currentData.financials[i].label || "이 항목"}"을 삭제하시겠습니까?`)) {
+                currentData.financials.splice(i, 1);
+                renderFinancialsInline();
+                triggerAutoSave();
+            }
+        });
+    });
+}
+
+// Add Item Button
+document.getElementById("btn-add-financial")?.addEventListener("click", () => {
+    if (!currentData) {
+        alert("먼저 종목을 선택해주세요.");
+        return;
+    }
+    if (!currentData.financials) currentData.financials = [];
+    currentData.financials.push({ label: "", value: "", note: "" });
+    renderFinancialsInline();
+    triggerAutoSave();
+
+    // Focus newly added label
+    const list = document.getElementById("fin-inline-list");
+    const inputs = list.querySelectorAll(".fi-inline-label");
+    if (inputs.length > 0) inputs[inputs.length - 1].focus();
+});
+
+// Accordion Toggle
+document.getElementById("fin-accordion-header")?.addEventListener("click", () => {
+    const body = document.getElementById("fin-accordion-body");
+    const arrow = document.getElementById("fin-accordion-arrow");
+    body.classList.toggle("open");
+    arrow.style.transform = body.classList.contains("open") ? "rotate(180deg)" : "rotate(0)";
+});
+
+
+// Settings Dropdown Logic
+const settingsBtn = document.getElementById('settings-btn');
+const settingsDropdown = document.getElementById('settings-dropdown');
+if (settingsBtn && settingsDropdown) {
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsDropdown.style.display = settingsDropdown.style.display === 'none' || settingsDropdown.style.display === '' ? 'block' : 'none';
+    });
+    document.addEventListener('click', (e) => {
+        if (!settingsDropdown.contains(e.target) && e.target !== settingsBtn) {
+            settingsDropdown.style.display = 'none';
+        }
+    });
+}
+
+// Quote display logic
+function updateMotivationalQuote() {
+    const quoteEl = document.getElementById('motivational-quote');
+    if (quoteEl && typeof window.getRandomQuote === 'function') {
+        quoteEl.textContent = '"' + window.getRandomQuote() + '"';
+    }
+}
+
+// Update quote on load
+document.addEventListener("DOMContentLoaded", () => {
+    updateMotivationalQuote();
+});

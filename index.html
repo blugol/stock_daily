@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>영웅문 연동 복기 대시보드 V2.0</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css?v=20260706r">
     <!-- Google Fonts for Premium Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,22 +16,30 @@
         <!-- TOP HEADER AREA -->
         <header class="app-header">
             <div class="header-left">
-                <h1>Tactical Trading Board <span class="version">v2.0</span></h1>
+                <!-- Title removed as requested -->
             </div>
-            <div class="header-middle">
+            <div class="header-middle" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
                 <div class="stock-badge">
                     <span class="pulse-icon"></span>
                     <span id="active-stock-name">연동 대기 중...</span>
                 </div>
+                <div id="motivational-quote" class="quote-text" style="color: var(--color-text-primary); font-size: 1.05rem; font-weight: 500; max-width: 600px; text-align: center; word-break: keep-all; letter-spacing: 0.5px;">시스템 초기화 중...</div>
             </div>
-            <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="hts-link-toggle" checked>
-                    <span class="slider round"></span>
-                </label>
-                <div class="status-indicator" id="connection-status">
-                    <span class="status-dot"></span>
-                    <span class="status-text" id="hts-link-status">HTS 연동 ON</span>
+            <div class="header-right" style="position: relative;">
+                <button id="settings-btn" style="background: transparent; border: none; color: var(--color-text-muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s;">⚙️</button>
+                <div id="settings-dropdown" style="display: none; position: absolute; right: 0; top: 40px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; z-index: 100; min-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    <div style="font-size: 0.85rem; color: var(--color-text-primary); margin-bottom: 12px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">시스템 설정</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.8rem; color: var(--color-text-muted);">HTS 연동 토글</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hts-link-toggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="status-indicator" id="connection-status" style="justify-content: center; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 4px;">
+                        <span class="status-dot"></span>
+                        <span class="status-text" id="hts-link-status" style="font-size: 0.75rem;">HTS 연동 ON</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -40,7 +49,7 @@
             <!-- SIDEBAR: STOCK LIST -->
             <aside class="sidebar">
                 <div class="sidebar-header">
-                    <h3>종목 검색 & 목록</h3>
+                    <h3>종목목록 <span class="section-badge">A</span></h3>
                     <div class="search-container">
                         <input type="text" id="stock-search" placeholder="종목명 검색..." autocomplete="off">
                     </div>
@@ -58,54 +67,133 @@
             <!-- MAIN DASHBOARD CONTENT -->
             <main class="dashboard-grid">
             
-            <!-- LEFT PANEL: MARTIN CALCULATOR & METADATA -->
+            <!-- LEFT PANEL: METADATA (종목분석), TIMELINE (메모기록) -->
             <section class="panel-left">
-                <!-- METADATA & TREND STATUS -->
                 <div class="card metadata-card">
                     <div class="card-header">
-                        <h2>차트 분석 메타데이터</h2>
+                        <h2>종목분석 <span class="section-badge">B</span></h2>
                     </div>
                     <div class="card-body">
-                        <!-- Trend Status Selection -->
+                        <!-- Trend Status Dropdown -->
                         <div class="form-group">
                             <label class="section-label">추세 상태 (Trend Status)</label>
-                            <div class="trend-selector">
-                                <label class="trend-option option-down">
-                                    <input type="radio" name="trend_status" value="하락 추세 진행중">
-                                    <span class="option-label">하락 추세 진행중</span>
-                                </label>
-                                <label class="trend-option option-pullback">
-                                    <input type="radio" name="trend_status" value="눌림목 지지중">
-                                    <span class="option-label">눌림목 지지중</span>
-                                </label>
-                                <label class="trend-option option-range">
-                                    <input type="radio" name="trend_status" value="수렴 및 박스권">
-                                    <span class="option-label">수렴 및 박스권</span>
-                                </label>
-                                <label class="trend-option option-breakout">
-                                    <input type="radio" name="trend_status" value="추세 상단 돌파">
-                                    <span class="option-label">추세 상단 돌파</span>
-                                </label>
+                            <div class="trend-dropdown" id="trend-dropdown">
+                                <div class="trend-dropdown-trigger" id="trend-dropdown-trigger">
+                                    <span id="trend-selected-text">선택 없음</span>
+                                    <span class="trend-dropdown-arrow">▾</span>
+                                </div>
+                                <div class="trend-dropdown-list" id="trend-dropdown-list">
+                                    <div class="trend-dropdown-item item-down" data-value="하락 추세 진행중">🔵 하락 추세 진행중</div>
+                                    <div class="trend-dropdown-item item-pullback" data-value="눌림목 지지중">🟣 눌림목 지지중</div>
+                                    <div class="trend-dropdown-item item-range" data-value="수렴 및 박스권">🟢 수렴 및 박스권</div>
+                                    <div class="trend-dropdown-item item-breakout" data-value="추세 상단 돌파">🔴 추세 상단 돌파</div>
+                                    <div class="trend-dropdown-item item-clear" data-value="">— 선택 해제</div>
+                                </div>
+                                <!-- Hidden radio inputs for data compatibility -->
+                                <input type="radio" name="trend_status" value="하락 추세 진행중" style="display:none">
+                                <input type="radio" name="trend_status" value="눌림목 지지중" style="display:none">
+                                <input type="radio" name="trend_status" value="수렴 및 박스권" style="display:none">
+                                <input type="radio" name="trend_status" value="추세 상단 돌파" style="display:none">
                             </div>
                         </div>
 
-                        <!-- Notion-style Dynamic Tags -->
-                        <div class="form-group">
-                            <label class="section-label">동적 키워드 태그 (Dynamic Tags)</label>
-                            <div class="tags-container-wrapper">
-                                <div id="tags-badge-list" class="tags-badge-list">
-                                    <!-- Badges will be rendered dynamically here -->
+                        <!-- Compact Financial Accordion -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <div class="fin-accordion-header" id="fin-accordion-header">
+                                <span class="fin-accordion-title">&#128202; 재무 분석 노트</span>
+                                <div class="fin-accordion-right">
+                                    <span class="fin-item-count" id="fin-item-count"></span>
+                                    <span class="fin-accordion-arrow" id="fin-accordion-arrow" style="transform: rotate(180deg)">▾</span>
                                 </div>
-                                <input type="text" id="tag-input" placeholder="태그 입력 후 Enter (예: 자사주10%)">
                             </div>
+                            <div class="fin-accordion-body open" id="fin-accordion-body">
+                                <div id="fin-inline-list"></div>
+                                <button type="button" id="btn-add-financial" class="fin-add-btn">+ 항목 추가</button>
+                            </div>
+                        </div>
+                    </div>
+                <div class="card timeline-card">
+                    <div class="card-header">
+                        <h2>메모기록</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Comment Input -->
+                        <div class="comment-input-row">
+                            <textarea id="comment-text" placeholder="실시간 차트 분석 및 감정을 기록하세요 (Enter로 전송 가능)"></textarea>
+                            <button class="btn btn-primary" id="btn-add-comment">추가</button>
+                        </div>
+
+                        <!-- Timeline Display -->
+                        <div class="timeline-container" id="timeline-container">
+                            <!-- Logs will be loaded here dynamically -->
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <!-- 1-1-2-4 MARTIN CALCULATOR -->
+            <!-- RIGHT PANEL: TARGETS (목표가/손절가), SETTLEMENT (매매결산), CALCULATOR (분할매수) -->
+            <section class="panel-right">
+                <div class="card targets-card">
+                    <div class="card-header">
+                        <h2>목표가/손절가 <span class="section-badge">C</span></h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="inputs-row">
+                            <div class="form-group flex-1">
+                                <label for="target-price" class="target-label">🎯 목표가 (Target Price)</label>
+                                <input type="number" id="target-price" placeholder="목표가 입력" min="0">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stop-price" class="stop-label">⚠️ 손절가 (Stop Loss)</label>
+                                <input type="number" id="stop-price" placeholder="손절가 입력" min="0">
+                            </div>
+                        </div>
+                    </div>
+                <div class="card settlement-card">
+                    <div class="card-header">
+                        <h2>매매결산</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="settlement-row" style="display: flex; gap: 12px; align-items: flex-end;">
+                            <div class="form-group" style="flex: 1.2; margin-bottom: 0;">
+                                <label for="sell-price">최종 매도 단가 (₩)</label>
+                                <input type="number" id="sell-price" placeholder="단가 입력" min="0" style="width: 100%; box-sizing: border-box;">
+                            </div>
+                            <div class="form-group" style="flex: 1.5; margin-bottom: 0;">
+                                <label for="sell-date">최종 매도일</label>
+                                <input type="date" id="sell-date" style="width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--color-text-primary); padding: 9px 12px; border-radius: 4px; outline: none; font-family: inherit;">
+                            </div>
+                            <button class="btn btn-settle" id="btn-settle-execute" style="flex: 1; height: 40px; padding: 0;">최종 청산</button>
+                        </div>
+
+                        <!-- Result Display Panel -->
+                        <div class="settlement-results" id="settlement-results-box" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h3 style="margin-bottom: 0;">결산 완료</h3>
+                                <button type="button" id="btn-settle-edit" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--primary); padding: 4px 12px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s;">수정</button>
+                            </div>
+                            <div class="results-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">매수 정보 (일자/평단)</span>
+                                    <input type="text" id="res-buy-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
+                                </div>
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">매도 정보 (일자/단가)</span>
+                                    <input type="text" id="res-sell-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
+                                </div>
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">보유 기간</span>
+                                    <input type="text" id="res-holding-period" readonly style="background: transparent; border: none; color: #FFF; font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
+                                </div>
+                                <div class="result-item" style="align-items: center;">
+                                    <span class="res-lbl">최종 수익률</span>
+                                    <input type="text" id="res-yield-rate" readonly style="background: transparent; border: none; color: var(--green); font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
+                                </div>
+                            </div>
+                        </div>
                 <div class="card calculator-card">
                     <div class="card-header">
-                        <h2>1-1-2-4 마틴 분할매수 계산기</h2>
+                        <h2>분할매수</h2>
                     </div>
                     <div class="card-body">
                         <!-- Base Inputs -->
@@ -138,17 +226,17 @@
                                     <!-- Rendered dynamically via app.js -->
                                 </tbody>
                             </table>
-                            <button type="button" id="btn-add-tier" class="btn btn-secondary" style="margin-top: 10px; width: 100%; border: 1px dashed var(--primary); background: rgba(0, 191, 165, 0.05); color: var(--primary); font-weight: 600; padding: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease;">+ 분할매수 차수 추가</button>
+                            <button type="button" id="btn-add-tier" class="btn btn-secondary" style="margin-top: 10px; width: 100%; border: 1px dashed var(--primary); background: rgba(255, 255, 255, 0.05); color: var(--primary); font-weight: 600; padding: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease;">+ 분할매수 차수 추가</button>
                         </div>
 
                         <!-- Real-time Average Price Summary -->
-                        <div class="avg-price-summary" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px; padding: 12px; background: rgba(0, 191, 165, 0.05); border: 1px solid rgba(0, 191, 165, 0.2); border-radius: 6px;">
+                        <div class="avg-price-summary" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px;">
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                                <div style="display: flex; flex-direction: column; gap: 4px; text-align: center; border-right: 1px solid rgba(0, 191, 165, 0.15);">
+                                <div style="display: flex; flex-direction: column; gap: 4px; text-align: center; border-right: 1px solid rgba(255, 255, 255, 0.15);">
                                     <span class="label" style="font-size: 0.72rem; color: var(--color-text-muted); margin-bottom: 0;">총 매수수량</span>
                                     <span class="value" id="total-qty-val" style="font-size: 0.95rem; font-weight: 600; color: #FFF;">0 주</span>
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 4px; text-align: center; border-right: 1px solid rgba(0, 191, 165, 0.15);">
+                                <div style="display: flex; flex-direction: column; gap: 4px; text-align: center; border-right: 1px solid rgba(255, 255, 255, 0.15);">
                                     <span class="label" style="font-size: 0.72rem; color: var(--color-text-muted); margin-bottom: 0;">총 매수금액</span>
                                     <span class="value" id="total-amount-val" style="font-size: 0.95rem; font-weight: 600; color: #FFF;">₩ 0</span>
                                 </div>
@@ -157,106 +245,20 @@
                                     <span class="value" id="current-avg-price" style="font-size: 0.95rem; font-weight: 600; color: var(--primary);">₩ 0</span>
                                 </div>
                             </div>
-                            <div style="border-top: 1px solid rgba(0, 191, 165, 0.15); padding-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="border-top: 1px solid rgba(255, 255, 255, 0.15); padding-top: 10px; display: flex; align-items: center; justify-content: space-between;">
                                 <span class="label" style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0; font-weight: 600;">다음 진입 필요 비중</span>
                                 <span id="next-buy-plan" style="font-size: 0.82rem; font-weight: 700; color: #64B5F6;">대기 중</span>
                             </div>
                         </div>
                     </div>
-                </div>
             </section>
 
-            <!-- RIGHT PANEL: TARGET PRICES & SETTLEMENT -->
-            <section class="panel-right">
-                <!-- TARGETS CARD -->
-                <div class="card targets-card">
-                    <div class="card-header">
-                        <h2>목표가 및 손절가 설정</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="inputs-row">
-                            <div class="form-group flex-1">
-                                <label for="target-price" class="target-label">🎯 목표가 (Target Price)</label>
-                                <input type="number" id="target-price" placeholder="목표가 입력" min="0">
-                            </div>
-                            <div class="form-group flex-1">
-                                <label for="stop-price" class="stop-label">⚠️ 손절가 (Stop Loss)</label>
-                                <input type="number" id="stop-price" placeholder="손절가 입력" min="0">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SETTLEMENT CARD -->
-                <div class="card settlement-card">
-                    <div class="card-header">
-                        <h2>매매 자동 결산 시스템</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="settlement-row" style="display: flex; gap: 12px; align-items: flex-end;">
-                            <div class="form-group" style="flex: 1.2; margin-bottom: 0;">
-                                <label for="sell-price">최종 매도 단가 (₩)</label>
-                                <input type="number" id="sell-price" placeholder="단가 입력" min="0" style="width: 100%; box-sizing: border-box;">
-                            </div>
-                            <div class="form-group" style="flex: 1.5; margin-bottom: 0;">
-                                <label for="sell-date">최종 매도일</label>
-                                <input type="date" id="sell-date" style="width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--color-text-primary); padding: 9px 12px; border-radius: 4px; outline: none; font-family: inherit;">
-                            </div>
-                            <button class="btn btn-settle" id="btn-settle-execute" style="flex: 1; height: 40px; padding: 0;">최종 청산</button>
-                        </div>
-
-                        <!-- Result Display Panel -->
-                        <div class="settlement-results" id="settlement-results-box" style="display: none;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h3 style="margin-bottom: 0;">결산 완료</h3>
-                                <button type="button" id="btn-settle-edit" style="background: rgba(0, 191, 165, 0.1); border: 1px solid rgba(0, 191, 165, 0.3); color: var(--primary); padding: 4px 12px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s;">수정</button>
-                            </div>
-                            <div class="results-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">매수 정보 (일자/평단)</span>
-                                    <input type="text" id="res-buy-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
-                                </div>
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">매도 정보 (일자/단가)</span>
-                                    <input type="text" id="res-sell-info" readonly style="background: transparent; border: none; color: #FFF; font-size: 0.95rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0;">
-                                </div>
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">보유 기간</span>
-                                    <input type="text" id="res-holding-period" readonly style="background: transparent; border: none; color: #FFF; font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
-                                </div>
-                                <div class="result-item" style="align-items: center;">
-                                    <span class="res-lbl">최종 수익률</span>
-                                    <input type="text" id="res-yield-rate" readonly style="background: transparent; border: none; color: var(--green); font-size: 1.15rem; font-weight: 700; text-align: center; width: 100%; outline: none; font-family: inherit; padding: 2px 0; transition: border-bottom 0.2s;">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DAILY LOG TIMELINE CARD -->
-                <div class="card timeline-card">
-                    <div class="card-header">
-                        <h2>타임라인형 메모 기록 (Daily Log)</h2>
-                    </div>
-                    <div class="card-body">
-                        <!-- Comment Input -->
-                        <div class="comment-input-row">
-                            <textarea id="comment-text" placeholder="실시간 차트 분석 및 감정을 기록하세요 (Enter로 전송 가능)"></textarea>
-                            <button class="btn btn-primary" id="btn-add-comment">추가</button>
-                        </div>
-
-                        <!-- Timeline Display -->
-                        <div class="timeline-container" id="timeline-container">
-                            <!-- Logs will be loaded here dynamically -->
-                        </div>
-                    </div>
-                </div>
-            </section>
         </main>
         </div> <!-- Closing app-body -->
     </div> <!-- Closing app-container -->
 
     <!-- Script Import -->
-    <script src="app.js?v=20260705"></script>
+    <script src="quotes.js?v=20260706"></script>
+    <script src="app.js?v=20260706s"></script>
 </body>
 </html>
